@@ -26,24 +26,24 @@ export class ShipController {
     ships: ShipData[],
     playerGameId: string
   ): void {
-    if (!this.validateShips(ships)) {
-      const errorMessage: WebSocketMessage = {
-        type: 'error',
-        data: JSON.stringify({
-          message: 'Invalid ship configuration'
-        }),
-        id: 0
-      };
+    // if (!this.validateShips(ships)) {
+    //   const errorMessage: WebSocketMessage = {
+    //     type: 'error',
+    //     data: JSON.stringify({
+    //       message: 'Invalid ship configuration'
+    //     }),
+    //     id: 0
+    //   };
 
-      const game = this.getGameById(gameId);
-      if (game) {
-        const playerInfo = game.players.get(playerGameId);
-        if (playerInfo) {
-          this.playerController.sendToPlayer(playerInfo.playerIndex, errorMessage);
-        }
-      }
-      return;
-    }
+    //   const game = this.getGameById(gameId);
+    //   if (game) {
+    //     const playerInfo = game.players.get(playerGameId);
+    //     if (playerInfo) {
+    //       this.playerController.sendToPlayer(playerInfo.playerIndex, errorMessage);
+    //     }
+    //   }
+    //   return;
+    // }
 
     const game = this.getGameById(gameId);
 
