@@ -1,21 +1,37 @@
 {
-    "name": "ws_task",
-    "version": "1.0.0",
-    "description": "Template for the WebSocket remote control task",
-    "main": "index.js",
-    "type": "module",
-    "scripts": {
-        "start": "node ./index.js",
-        "start:dev": "nodemon ./index.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "Andrei Auchynnikau",
-    "keywords": [],
-    "license": "ISC",
-    "devDependencies": {
-        "nodemon": "^2.0.16"
-    },
-    "dependencies": {
-        "ws": "^8.8.0"
-    }
+  "name": "websocket-battleship-server",
+  "version": "1.0.0",
+  "description": "WebSocket Battleship Server for RS School",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "start:dev": "ts-node-dev --respawn src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Roman Golchuk <golchukroman@gmail.com> (https://www.roman-golchuk.site/)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/5tronciy/websockets-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/5tronciy/websockets-ui/issues"
+  },
+  "keywords": [
+    "websocket",
+    "battleship",
+    "game"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
 }
