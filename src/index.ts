@@ -1,6 +1,11 @@
 import { WebSocketServer } from './server/WebSocketServer.js';
+import { httpServer } from "./server/http_server/index.js";
 
+const HTTP_PORT = 8181;
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+
+console.log(`Start static http server on the ${HTTP_PORT} port!`);
+httpServer.listen(HTTP_PORT);
 
 const server = new WebSocketServer(PORT);
 
