@@ -1,19 +1,38 @@
-import { WebSocketMessage } from '../types/index.js';
+import { WebSocketMessage, ShipData, WinnerInfo } from '../types/index.js';
 import { WebSocketServer } from './WebSocketServer.js';
-import { Player } from '../models/Player.js';
-import { Room } from '../models/Room.js';
-import { Game } from '../models/Game.js';
+import { PlayerController } from '../controllers/PlayerController.js';
+import { RoomController } from '../controllers/RoomController.js';
+import { GameController } from '../controllers/GameController.js';
+import { ShipController } from '../controllers/ShipController.js';
 
 export class MessageHandler {
-  [x: string]: any;
   private wsServer: WebSocketServer;
+  private playerController: PlayerController;
+  private roomController: RoomController;
+  private gameController: GameController;
+  private shipController: ShipController;
   private clientToPlayer: Map<string, string> = new Map();
 
   constructor(wsServer: WebSocketServer) {
     this.wsServer = wsServer;
+    this.playerController = new PlayerController();
+    this.roomController = new RoomController(this.playerController);
+    this.gameController = new GameController(this.playerController, this.roomController);
+    this.shipController = new ShipController(this.playerController, this.roomController, this.gameController);
   }
 
   handleMessage(clientId: string, message: WebSocketMessage): void {
+    console.log(`Processing message of type ${message.type}`);
+    if (typeof message.data === 'string') {
+      try {
+        if (message.data.length > 0) {
+          message.data = JSON.parse(message.data);
+        }
+      } catch (err) {
+        console.error('Invalid JSON in message.body:', err);
+        return;
+      }
+    }
     switch (message.type) {
       case 'reg':
         this.handleRegistration(clientId, message);
@@ -33,247 +52,153 @@ export class MessageHandler {
       case 'randomAttack':
         this.handleRandomAttack(clientId, message);
         break;
+      case 'update_winners':
+        this.handleUpdateWinners(clientId, message);
+        break;
       default:
         console.warn(`Unknown message type: ${message.type}`);
     }
   }
 
   private handleRegistration(clientId: string, message: WebSocketMessage): void {
-    const { name, password } = JSON.parse(message.data);
+    const ws = this.wsServer.getClientSocket(clientId);
+    if (!ws) return;
 
-    if (!name || !password) {
-      this.wsServer.sendToClient(clientId, {
-        type: 'reg',
-        data: {
-          name: '',
-          index: '',
-          error: true,
-          errorText: 'Name and password are required'
-        },
-        id: 0
-      });
-      return;
+    this.playerController.handleRegistration(ws, message);
+
+    if (message.data && typeof message.data === 'object' && !message.data.error) {
+      const data = message.data as { name: string, password: string };
+      const result = { name: data.name, password: data.password };
+      const player = result.name;
+      this.clientToPlayer.set(clientId, player);
     }
-
-    const result = Player.registerOrLogin(name, password);
-
-    if (!result.error) {
-      this.clientToPlayer.set(clientId, result.index);
-
-      this.broadcastRooms();
-
-      this.broadcastWinners();
-    }
-
-    this.wsServer.sendToClient(clientId, {
-      type: 'reg',
-      data: {
-        name,
-        ...result
-      },
-      id: 0
-    });
   }
 
   private handleCreateRoom(clientId: string, message: WebSocketMessage): void {
     const playerId = this.clientToPlayer.get(clientId);
-    if (!playerId) return;
+    if (!playerId) {
+      console.error('Player not found for client', clientId);
+      return;
+    }
 
-    const roomId = Room.createRoom(playerId);
+    const ws = this.wsServer.getClientSocket(clientId);
+    if (!ws) return;
 
-    this.broadcastRooms();
+    this.roomController.handleCreateRoom(ws, message, playerId);
   }
 
   private handleAddUserToRoom(clientId: string, message: WebSocketMessage): void {
     const playerId = this.clientToPlayer.get(clientId);
-    if (!playerId) return;
+    if (!playerId) {
+      console.error('Player not found for client', clientId);
+      return;
+    }
 
-    const { indexRoom } = message.data;
-    if (!indexRoom) return;
+    const ws = this.wsServer.getClientSocket(clientId);
+    if (!ws) return;
 
-    const result = Room.addPlayerToRoom(indexRoom, playerId);
-    if (!result) return;
-
-    const { gameId, playerGameId } = result;
-
-    const game = Game.getGame(gameId);
-    if (!game) return;
-
-    const otherPlayerId = Array.from(game.players.keys()).find(id => id !== playerId);
-    if (!otherPlayerId) return;
-
-    const otherClientId = this.findClientByPlayerId(otherPlayerId);
-    if (!otherClientId) return;
-
-    this.wsServer.sendToClient(clientId, {
-      type: 'create_game',
-      data: {
-        idGame: gameId,
-        idPlayer: playerGameId
-      },
-      id: 0
-    });
-
-    this.wsServer.sendToClient(otherClientId, {
-      type: 'create_game',
-      data: {
-        idGame: gameId,
-        idPlayer: game.playerIds[otherPlayerId]
-      },
-      id: 0
-    });
-
-    this.broadcastRooms();
+    this.roomController.handleAddUserToRoom(ws, message, playerId);
   }
 
   private handleAddShips(clientId: string, message: WebSocketMessage): void {
     const playerId = this.clientToPlayer.get(clientId);
-    if (!playerId) return;
+    if (!playerId) {
+      console.error('Player not found for client', clientId);
+      return;
+    }
 
-    const { gameId, ships, indexPlayer } = message.data;
-    if (!gameId || !ships || indexPlayer === undefined) return;
+    if (!message.data || typeof message.data !== 'object') {
+      console.error('Invalid message data', message);
+      return;
+    }
 
-    const game = Game.getGame(gameId);
-    if (!game) return;
+    const { gameId, ships, indexPlayer } = message.data as { 
+      gameId: string, 
+      ships: ShipData[], 
+      indexPlayer: string 
+    };
 
-    const playerGameId = game.playerIds[playerId];
-    if (!playerGameId) return;
+    if (!gameId || !ships || !indexPlayer) {
+      console.error('Missing required data for add_ships', message.data);
+      return;
+    }
 
-    this.shipController.addShips(gameId, ships, playerGameId);
+    this.shipController.addShips(gameId, ships, indexPlayer);
   }
 
   private handleAttack(clientId: string, message: WebSocketMessage): void {
     const playerId = this.clientToPlayer.get(clientId);
-    if (!playerId) return;
-
-    const { gameId, x, y, indexPlayer } = message.data;
-    if (gameId === undefined || x === undefined || y === undefined || indexPlayer === undefined) return;
-
-    const position = { x, y };
-    const result = Game.attack(gameId, playerId, position);
-    if (!result) return;
-
-    this.broadcastAttackResult(gameId, result);
-
-    const game = Game.getGame(gameId);
-    if (game && game.isFinished && game.winner) {
-      Player.incrementWins(game.winner);
-
-      this.broadcastGameFinish(gameId);
-
-      this.broadcastWinners();
-    } else {
-      this.broadcastTurn(gameId);
+    if (!playerId) {
+      console.error('Player not found for client', clientId);
+      return;
     }
+
+    if (!message.data || typeof message.data !== 'object') {
+      console.error('Invalid message data', message);
+      return;
+    }
+
+    const { gameId, x, y, indexPlayer } = message.data as {
+      gameId: string,
+      x: number,
+      y: number,
+      indexPlayer: string
+    };
+
+    if (!gameId || x === undefined || y === undefined || !indexPlayer) {
+      console.error('Missing required data for attack', message.data);
+      return;
+    }
+
+    this.gameController.processAttack(gameId, x, y, indexPlayer);
   }
 
   private handleRandomAttack(clientId: string, message: WebSocketMessage): void {
     const playerId = this.clientToPlayer.get(clientId);
-    if (!playerId) return;
-
-    const { gameId, indexPlayer } = message.data;
-    if (!gameId || indexPlayer === undefined) return;
-
-    const result = Game.randomAttack(gameId, playerId);
-    if (!result) return;
-
-    this.broadcastAttackResult(gameId, result);
-
-    const game = Game.getGame(gameId);
-    if (game && game.isFinished && game.winner) {
-      Player.incrementWins(game.winner);
-
-      this.broadcastGameFinish(gameId);
-
-      this.broadcastWinners();
-    } else {
-      this.broadcastTurn(gameId);
+    if (!playerId) {
+      console.error('Player not found for client', clientId);
+      return;
     }
-  }
 
-  private broadcastRooms(): void {
-    const rooms = Room.getAvailableRooms();
-
-    this.wsServer.broadcast({
-      type: 'update_room',
-      data: rooms,
-      id: 0
-    });
-  }
-
-  private broadcastWinners(): void {
-    const winners = Player.getWinners();
-
-    this.wsServer.broadcast({
-      type: 'update_winners',
-      data: winners,
-      id: 0
-    });
-  }
-
-  private broadcastAttackResult(gameId: string, result: any): void {
-    const game = Game.getGame(gameId);
-    if (!game) return;
-
-    for (const pid of game.players.keys()) {
-      const cid = this.findClientByPlayerId(pid);
-      if (!cid) continue;
-
-      this.wsServer.sendToClient(cid, {
-        type: 'attack',
-        data: result,
-        id: 0
-      });
+    if (!message.data || typeof message.data !== 'object') {
+      console.error('Invalid message data', message);
+      return;
     }
+
+    const { gameId, indexPlayer } = message.data as {
+      gameId: string,
+      indexPlayer: string
+    };
+
+    if (!gameId || !indexPlayer) {
+      console.error('Missing required data for randomAttack', message.data);
+      return;
+    }
+
+    this.gameController.processRandomAttack(gameId, indexPlayer);
   }
 
-  private broadcastTurn(gameId: string): void {
-    const game = Game.getGame(gameId);
-    if (!game || !game.currentTurn) return;
-
-    const currentPlayerId = game.currentTurn;
-    const currentPlayerGameId = game.playerIds[currentPlayerId];
-
-    for (const pid of game.players.keys()) {
-      const cid = this.findClientByPlayerId(pid);
-      if (!cid) continue;
-
-      this.wsServer.sendToClient(cid, {
-        type: 'turn',
-        data: {
-          currentPlayer: currentPlayerGameId
-        },
-        id: 0
-      });
+  handleUpdateWinners(clientId: string, message: WebSocketMessage): void {
+    const playerId = this.clientToPlayer.get(clientId);
+    if (!playerId) {
+      console.error('Player not found for client', clientId);
+      return;
     }
+
+    if (!message.data || typeof message.data !== 'object') {
+      console.error('Invalid message data', message);
+      return;
+    }
+
+    const { winners } = message.data;
+    this.playerController.broadcastWinners()
   }
 
-  private broadcastGameFinish(gameId: string): void {
-    const game = Game.getGame(gameId);
-    if (!game || !game.winner) return;
-
-    const winnerPlayerGameId = game.playerIds[game.winner];
-
-    for (const pid of game.players.keys()) {
-      const cid = this.findClientByPlayerId(pid);
-      if (!cid) continue;
-
-      this.wsServer.sendToClient(cid, {
-        type: 'finish',
-        data: {
-          winPlayer: winnerPlayerGameId
-        },
-        id: 0
-      });
+  handleDisconnect(clientId: string): void {
+    const playerId = this.clientToPlayer.get(clientId);
+    if (playerId) {
+      this.playerController.handleDisconnect(playerId);
+      this.clientToPlayer.delete(clientId);
     }
-  }
-
-  private findClientByPlayerId(playerId: string): string | undefined {
-    for (const [clientId, pid] of this.clientToPlayer.entries()) {
-      if (pid === playerId) {
-        return clientId;
-      }
-    }
-    return undefined;
   }
 }

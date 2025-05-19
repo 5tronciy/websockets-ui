@@ -12,12 +12,12 @@ export class PlayerController {
       if (!data.name || !data.password) {
         this.sendResponse(ws, {
           type: 'reg',
-          data: {
+          data: JSON.stringify({
             name: '',
             index: '',
             error: true,
             errorText: 'Name and password are required'
-          },
+          }),
           id: 0
         });
         return;
@@ -31,28 +31,24 @@ export class PlayerController {
 
       this.sendResponse(ws, {
         type: 'reg',
-        data: {
+        data: JSON.stringify({
           name: data.name,
           index: result.index,
           error: result.error,
           errorText: result.errorText
-        },
+        }),
         id: 0
       });
-
-      if (!result.error) {
-        this.broadcastWinners();
-      }
     } catch (error) {
       console.error('Error handling registration:', error);
       this.sendResponse(ws, {
         type: 'reg',
-        data: {
+        data: JSON.stringify({
           name: '',
           index: '',
           error: true,
           errorText: 'Internal server error'
-        },
+        }),
         id: 0
       });
     }
@@ -62,7 +58,7 @@ export class PlayerController {
     const winners = Player.getWinners();
     const message: WebSocketMessage = {
       type: 'update_winners',
-      data: winners,
+      data: JSON.stringify(winners),
       id: 0
     };
 

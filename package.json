@@ -32,7 +32,8 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "ws": "^8.8.0"
+    "ws": "^8.8.0",
+    "uuid": "^9.0.0"
   },
   "nodemonConfig": {
     "watch": [

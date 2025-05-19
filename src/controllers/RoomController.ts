@@ -22,7 +22,7 @@ export class RoomController {
       console.error('Error creating room:', error);
       this.sendResponse(ws, {
         type: 'error',
-        data: { message: 'Failed to create room' },
+        data: JSON.stringify({ message: 'Failed to create room' }),
         id: 0
       });
     }
@@ -35,7 +35,7 @@ export class RoomController {
       if (!data.indexRoom) {
         this.sendResponse(ws, {
           type: 'error',
-          data: { message: 'Room index is required' },
+          data: JSON.stringify({ message: 'Room index is required' }),
           id: 0
         });
         return;
@@ -47,7 +47,7 @@ export class RoomController {
       if (!roomPlayers || roomPlayers.length === 0) {
         this.sendResponse(ws, {
           type: 'error',
-          data: { message: 'Room not found' },
+          data: JSON.stringify({ message: 'Room not found' }),
           id: 0
         });
         return;
@@ -60,7 +60,7 @@ export class RoomController {
       if (!result) {
         this.sendResponse(ws, {
           type: 'error',
-          data: { message: 'Failed to join room' },
+          data: JSON.stringify({ message: 'Failed to join room' }),
           id: 0
         });
         return;
@@ -70,10 +70,10 @@ export class RoomController {
 
       const secondPlayerMessage: WebSocketMessage = {
         type: 'create_game',
-        data: {
+        data: JSON.stringify({
           idGame: gameId,
           idPlayer: result.playerGameId
-        },
+        }),
         id: 0
       };
       this.sendResponse(ws, secondPlayerMessage);
@@ -97,7 +97,7 @@ export class RoomController {
       console.error('Error adding user to room:', error);
       this.sendResponse(ws, {
         type: 'error',
-        data: { message: 'Internal server error' },
+        data: JSON.stringify({ message: 'Internal server error' }),
         id: 0
       });
     }
@@ -108,7 +108,7 @@ export class RoomController {
 
     const message: WebSocketMessage = {
       type: 'update_room',
-      data: rooms,
+      data: JSON.stringify(rooms),
       id: 0
     };
 

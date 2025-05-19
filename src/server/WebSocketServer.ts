@@ -1,4 +1,5 @@
 import { WebSocketServer as WSServer } from 'ws';
+import type WebSocket from 'ws';
 import { WebSocketMessage } from '../types/index.js';
 import { MessageHandler } from './MessageHandler.js';
 
@@ -10,8 +11,6 @@ export class WebSocketServer {
   constructor(port: number) {
     this.server = new WSServer({ port });
     this.messageHandler = new MessageHandler(this);
-
-    console.log(`WebSocket server started on port ${port}`);
 
     this.initializeServerEvents();
   }
@@ -33,6 +32,7 @@ export class WebSocketServer {
 
       ws.addEventListener('close', () => {
         console.log(`Client disconnected: ${clientId}`);
+        this.messageHandler.handleDisconnect(clientId);
         this.clients.delete(clientId);
       });
 
@@ -87,6 +87,10 @@ export class WebSocketServer {
 
   getClientIds(): string[] {
     return Array.from(this.clients.keys());
+  }
+
+  getClientSocket(clientId: string): WebSocket | undefined {
+    return this.clients.get(clientId);
   }
 
   close(): void {
