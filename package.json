@@ -5,10 +5,11 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "start": "node dist/index.js",
-    "build": "tsc",
-    "start:dev": "ts-node-dev --respawn src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+      "start": "node ./dist/index.js",
+      "start:dev": "nodemon",
+      "build": "tsc",
+      "dev": "tsc --watch",
+      "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Roman Golchuk <golchukroman@gmail.com> (https://www.roman-golchuk.site/)",
   "repository": {
@@ -25,13 +26,17 @@
   ],
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@types/ws": "^8.5.10",
-    "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+      "@types/node": "^18.16.0",
+      "@types/ws": "^8.5.4",
+      "nodemon": "^2.0.16",
+      "typescript": "^5.0.4"
   },
   "dependencies": {
-    "ws": "^8.16.0"
+      "ws": "^8.8.0"
+  },
+  "nodemonConfig": {
+      "watch": ["src"],
+      "ext": "ts",
+      "exec": "npm run build && npm run start"
   }
 }
