@@ -39,7 +39,7 @@ export class MessageHandler {
   }
 
   private handleRegistration(clientId: string, message: WebSocketMessage): void {
-    const { name, password } = message.data;
+    const { name, password } = JSON.parse(message.data);
 
     if (!name || !password) {
       this.wsServer.sendToClient(clientId, {
