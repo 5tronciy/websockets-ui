@@ -105,7 +105,7 @@ export class RoomController {
 
   broadcastRooms(): void {
     const rooms = Room.getAvailableRooms();
-
+    console.log(JSON.stringify(rooms, null, 2));
     const message: WebSocketMessage = {
       type: 'update_room',
       data: JSON.stringify(rooms),

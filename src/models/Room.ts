@@ -3,7 +3,7 @@ import { Game } from './Game.js';
 import { generateId } from '../utils/index.js';
 
 export class Room {
-  private static rooms: Map<string, string[]> = new Map(); // roomId -> playerIds
+  private static rooms: Map<string, string[]> = new Map();
 
   static createRoom(playerId: string): string {
     const roomId = generateId();
@@ -55,6 +55,7 @@ export class Room {
 
         for (const playerId of playerIds) {
           const player = Player.getPlayer(playerId);
+          console.log('Checking playerId:', playerId, 'Found player:', player);
           if (player) {
             roomUsers.push({
               name: player.name,

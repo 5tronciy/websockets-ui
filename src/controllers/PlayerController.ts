@@ -5,7 +5,7 @@ import { WebSocketMessage, PlayerData } from '../types/index.js';
 export class PlayerController {
   private connections: Map<string, WebSocket> = new Map();
 
-  handleRegistration(ws: WebSocket, message: WebSocketMessage): void {
+  handleRegistration(ws: WebSocket, message: WebSocketMessage): string | undefined {
     try {
       const data = message.data as PlayerData;
 
@@ -28,7 +28,6 @@ export class PlayerController {
       if (!result.error && result.index) {
         this.connections.set(result.index, ws);
       }
-
       this.sendResponse(ws, {
         type: 'reg',
         data: JSON.stringify({
@@ -39,6 +38,7 @@ export class PlayerController {
         }),
         id: 0
       });
+      return result.index;
     } catch (error) {
       console.error('Error handling registration:', error);
       this.sendResponse(ws, {

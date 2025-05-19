@@ -29,9 +29,9 @@ export class ShipController {
     if (!this.validateShips(ships)) {
       const errorMessage: WebSocketMessage = {
         type: 'error',
-        data: {
+        data: JSON.stringify({
           message: 'Invalid ship configuration'
-        },
+        }),
         id: 0
       };
 
@@ -66,10 +66,10 @@ export class ShipController {
 
     const confirmMessage: WebSocketMessage = {
       type: 'ships_placed',
-      data: {
+      data: JSON.stringify({
         success: true,
         message: 'Ships placed successfully'
-      },
+      }),
       id: 0
     };
 
@@ -102,10 +102,10 @@ export class ShipController {
 
       const startGameMessage: WebSocketMessage = {
         type: 'start_game',
-        data: {
+        data: JSON.stringify({
           ships,
           currentPlayerIndex: playerGameId,
-        },
+        }),
         id: 0,
       };
 
@@ -117,9 +117,9 @@ export class ShipController {
 
     const turnMessage: WebSocketMessage = {
       type: 'turn',
-      data: {
+      data: JSON.stringify({
         currentPlayer: firstPlayerId,
-      },
+      }),
       id: 0,
     };
 

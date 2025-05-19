@@ -64,13 +64,10 @@ export class MessageHandler {
     const ws = this.wsServer.getClientSocket(clientId);
     if (!ws) return;
 
-    this.playerController.handleRegistration(ws, message);
+    const playerId = this.playerController.handleRegistration(ws, message);
 
-    if (message.data && typeof message.data === 'object' && !message.data.error) {
-      const data = message.data as { name: string, password: string };
-      const result = { name: data.name, password: data.password };
-      const player = result.name;
-      this.clientToPlayer.set(clientId, player);
+    if (playerId) {
+      this.clientToPlayer.set(clientId, playerId);
     }
   }
 
